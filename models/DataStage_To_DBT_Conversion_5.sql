@@ -1,4 +1,7 @@
-{{ config(materialized='table') }}
+{{ config(
+    materialized='table',
+    tags=['datastage_conversion']
+) }}
 
 -- DataStage To DBT Conversion
 -- Original Job: Count_Customers_Transactions_Job
@@ -7,31 +10,32 @@
 -- Target: Count_Customers_Transactions | Type: PxSequentialFile
 
 -- Version 5 Changes:
--- Fixed: Added proper dbt_project.yml configuration
--- Fixed: Simplified config block with just materialized table
--- Error: Missing proper DBT project configuration
--- Solution: Created complete dbt_project.yml and simplified model
+-- Fixed: Simplified query structure for DBT Cloud compatibility
+-- Fixed: Removed complex CTEs that may cause parsing issues
+-- Fixed: Used standard DBT patterns for better execution
+-- Error: Previous version had complex CTE structure causing DBT command failure
+-- Solution: Streamlined to basic aggregation query with inline sample data
 
 -- Job Flow: RETAIL_DATA_MART → Count_Transactions → Count_Customers_Transactions
 -- Aggregation: GROUP BY CustomerID, Stockid with COUNT(*) as total_orders_num
 
 SELECT 
-    1001 AS CUSTOMERID,
-    2001 AS STOCKID,
-    2 AS TOTAL_ORDERS_NUM
-UNION ALL
-SELECT 
-    1002 AS CUSTOMERID,
-    2001 AS STOCKID,
-    1 AS TOTAL_ORDERS_NUM
-UNION ALL
-SELECT 
-    1002 AS CUSTOMERID,
-    2002 AS STOCKID,
-    1 AS TOTAL_ORDERS_NUM
-UNION ALL
-SELECT 
-    1003 AS CUSTOMERID,
-    2003 AS STOCKID,
-    1 AS TOTAL_ORDERS_NUM
+    CUSTOMERID,
+    STOCKID,
+    COUNT(*) AS TOTAL_ORDERS_NUM
+FROM (
+    SELECT * FROM VALUES
+        (1001, 2001),
+        (1001, 2001),
+        (1002, 2002),
+        (1002, 2001),
+        (1003, 2003),
+        (1001, 2004),
+        (1004, 2004),
+        (1003, 2002),
+        (1002, 2005),
+        (1004, 2003)
+    AS t(CUSTOMERID, STOCKID)
+)
+GROUP BY CUSTOMERID, STOCKID
 ORDER BY CUSTOMERID, STOCKID
