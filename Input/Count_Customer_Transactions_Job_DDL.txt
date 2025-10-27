@@ -1,0 +1,69 @@
+Warehouse: AVA_WAREHOUSE
+DB: AVA_DB
+Schema: PUBLIC
+
+
+-- Source Table DDL for Snowflake
+
+CREATE TABLE RETAIL_DATA_MART (
+
+    productid INTEGER NOT NULL,
+
+    productname VARCHAR(255) NOT NULL,
+
+    Category VARCHAR(255) NOT NULL,
+
+    SubCategory VARCHAR(255) NOT NULL,
+
+    Sales INTEGER NOT NULL,
+
+    Quantity INTEGER NOT NULL,
+
+    CustomerID INTEGER NOT NULL,
+
+    customername VARCHAR(255) NOT NULL,
+
+    SpendingScore INTEGER NOT NULL,
+
+    AnnualIncomek INTEGER NOT NULL,
+
+    gender VARCHAR(255) NOT NULL,
+
+    age INTEGER NOT NULL,
+
+    customertype VARCHAR(255) NOT NULL,
+
+    Stockid INTEGER NOT NULL,
+
+    name VARCHAR(255) NOT NULL,
+
+    rating INTEGER NOT NULL,
+
+    location VARCHAR(255) NOT NULL,
+
+    noofemployees INTEGER NOT NULL,
+
+    Invoiceid VARCHAR(255) NOT NULL,
+
+    Description VARCHAR(255) NOT NULL,
+
+    InvoiceDate INTEGER NOT NULL,
+
+    Price INTEGER NOT NULL,
+
+    Country VARCHAR(255) NOT NULL
+
+);
+ 
+-- Target Table DDL for Snowflake
+
+CREATE TABLE Count_Customers_Transactions (
+
+    CustomerID INTEGER NOT NULL,
+
+    Stockid INTEGER NOT NULL,
+
+    total_orders_num INTEGER NOT NULL
+
+);
+ 
