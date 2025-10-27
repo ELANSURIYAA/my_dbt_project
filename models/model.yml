@@ -4,42 +4,37 @@ sources:
   - name: PUBLIC
     database: AVA_DB
     schema: PUBLIC
+    description: "Source tables for retail data mart transformation"
     tables:
-      - name: RETAIL_DATA_MART
-        description: "Source table containing retail transaction data with customer, product, and stock information"
+      - name: customer_dim
+        description: "Customer dimension table containing customer details"
         columns:
-          - name: CustomerID
+          - name: customer_id
             description: "Unique identifier for customer"
             tests:
               - not_null
-          - name: Stockid
-            description: "Unique identifier for stock/store"
-            tests:
-              - not_null
-          - name: productid
-            description: "Product identifier"
-          - name: productname
-            description: "Name of the product"
-          - name: Category
-            description: "Product category"
-          - name: SubCategory
-            description: "Product sub-category"
-          - name: Sales
-            description: "Sales amount"
-          - name: Quantity
-            description: "Quantity sold"
+              - unique
           - name: customername
             description: "Customer name"
-          - name: SpendingScore
+          - name: spending_score
             description: "Customer spending score"
-          - name: AnnualIncomek
+          - name: annual_incomek
             description: "Customer annual income in thousands"
           - name: gender
             description: "Customer gender"
           - name: age
             description: "Customer age"
           - name: customertype
-            description: "Type of customer"
+            description: "Type of customer (citizen/foreign)"
+
+      - name: retail_dim
+        description: "Retail/Stock dimension table"
+        columns:
+          - name: stockid
+            description: "Unique identifier for stock/store"
+            tests:
+              - not_null
+              - unique
           - name: name
             description: "Stock/store name"
           - name: rating
@@ -48,52 +43,146 @@ sources:
             description: "Stock/store location"
           - name: noofemployees
             description: "Number of employees at stock/store"
-          - name: Invoiceid
+
+      - name: transactions_fact
+        description: "Transaction fact table"
+        columns:
+          - name: stockid
+            description: "Stock identifier"
+            tests:
+              - not_null
+          - name: invoiceid
             description: "Invoice identifier"
-          - name: Description
+          - name: description
             description: "Transaction description"
-          - name: InvoiceDate
-            description: "Invoice date"
-          - name: Price
+          - name: quantity
+            description: "Quantity sold"
+          - name: invoice_date
+            description: "Invoice date (string format)"
+          - name: price
             description: "Price of item"
-          - name: Country
+          - name: customer_id
+            description: "Customer identifier"
+            tests:
+              - not_null
+          - name: country
             description: "Country of transaction"
+          - name: productid
+            description: "Product identifier"
+
+      - name: product_dim
+        description: "Product dimension table"
+        columns:
+          - name: productid
+            description: "Unique identifier for product"
+            tests:
+              - not_null
+              - unique
+          - name: productname
+            description: "Name of the product"
+          - name: category
+            description: "Product category"
+          - name: subcategory
+            description: "Product sub-category"
+          - name: sales
+            description: "Sales amount"
+          - name: quantity
+            description: "Quantity"
 
 models:
   - name: DataStage_To_DBT_Conversion_1
-    description: "Aggregated count of customer transactions by CustomerID and Stockid. Converted from DataStage job: Count_Customers_Transactions_Job"
+    description: "Retail data mart created from DataStage RETAIL_DATA_MART_Job. Joins customer, product, retail, and transaction data with filtering and transformation logic."
     config:
       materialized: table
-      tags: ['datastage_conversion', 'count_transactions']
+      tags: ['datastage_conversion', 'retail_data_mart']
+      database: AVA_DB
+      schema: PUBLIC
     columns:
+      - name: productid
+        description: "Product identifier from Product_Dim"
+        tests:
+          - not_null
+      - name: productname
+        description: "Name of the product from Product_Dim"
+      - name: Category
+        description: "Product category from Product_Dim"
+      - name: SubCategory
+        description: "Product sub-category from Product_Dim"
+      - name: Sales
+        description: "Sales amount from Product_Dim"
+      - name: Quantity
+        description: "Quantity from Product_Dim"
       - name: CustomerID
-        description: "Customer identifier - grouping key from source RETAIL_DATA_MART"
+        description: "Customer identifier from Customer_Dim"
         tests:
           - not_null
-          - relationships:
-              to: source('PUBLIC', 'RETAIL_DATA_MART')
-              field: CustomerID
+      - name: customername
+        description: "Customer name from Customer_Dim - transformed to UPPERCASE via DataStage UpCase() function"
+      - name: SpendingScore
+        description: "Customer spending score from Customer_Dim"
+      - name: AnnualIncomek
+        description: "Customer annual income in thousands from Customer_Dim"
+      - name: gender
+        description: "Customer gender from Customer_Dim"
+      - name: age
+        description: "Customer age from Customer_Dim"
+      - name: customertype
+        description: "Type of customer from Customer_Dim - filtered for 'citizen' or 'foreign' types"
       - name: Stockid
-        description: "Stock identifier - grouping key from source RETAIL_DATA_MART"
+        description: "Stock identifier from Retail_Dim"
         tests:
           - not_null
-          - relationships:
-              to: source('PUBLIC', 'RETAIL_DATA_MART')
-              field: Stockid
-      - name: total_orders_num
-        description: "Total number of transactions/orders for each CustomerID and Stockid combination. Derived from RecCount() aggregation in DataStage Count_Transactions stage"
-        tests:
-          - not_null
+      - name: name
+        description: "Stock/store name from Retail_Dim"
+      - name: rating
+        description: "Stock/store rating from Retail_Dim"
+      - name: location
+        description: "Stock/store location from Retail_Dim"
+      - name: noofemployees
+        description: "Number of employees at stock/store from Retail_Dim"
+      - name: Invoiceid
+        description: "Invoice identifier from Transactions_Fact"
+      - name: Description
+        description: "Transaction description from Transactions_Fact"
+      - name: InvoiceDate
+        description: "Invoice date from Transactions_Fact - converted from string to integer"
+      - name: Price
+        description: "Price of item from Transactions_Fact"
+      - name: Country
+        description: "Country of transaction from Transactions_Fact"
     meta:
-      datastage_job: "Count_Customers_Transactions_Job"
+      datastage_job: "RETAIL_DATA_MART_Job"
       datastage_stages:
-        - name: "RETAIL_DATA_MART"
+        - name: "Customer_Dim"
           type: "Sequential File (Source)"
-        - name: "Count_Transactions"
-          type: "Aggregator"
-          method: "sort"
-          keys: "CustomerID, Stockid"
-        - name: "Count_Customers_Transactions"
+          file: "C:\\case_study\\dataset\\customer.txt"
+        - name: "Retail_Dim"
+          type: "Sequential File (Source)"
+          file: "C:\\case_study\\dataset\\Retail.txt"
+        - name: "Transactions_Fact"
+          type: "Sequential File (Source)"
+          file: "C:\\case_study\\dataset\\transactiondata.txt"
+        - name: "Product_Dim"
+          type: "Sequential File (Source)"
+          file: "C:\\case_study\\dataset\\product.txt"
+        - name: "Customer_Transactions"
+          type: "Inner Join"
+          join_key: "CustomerID"
+        - name: "Customer_Transactions_Retail"
+          type: "Inner Join"
+          join_key: "Stockid"
+        - name: "Customer_Transactions_Retail_Product"
+          type: "Inner Join"
+          join_key: "productid"
+        - name: "Filtered_Data"
+          type: "Filter"
+          filter_condition: "customertype like 'citizen' or customertype like 'foriegn'"
+        - name: "Transform_Data"
+          type: "Transformer"
+          transformation: "customername = UpCase(customername)"
+        - name: "ACTIVATIONSALES_DATA_MART"
           type: "Sequential File (Target)"
+          file: "C:\\case_study\\Output_Data\\RETAIL_DATA_MART.txt"
       conversion_date: "2024"
       conversion_version: "1"
+      conversion_notes: "Initial conversion from DataStage to DBT. All inner joins, filter logic, and uppercase transformation preserved."
