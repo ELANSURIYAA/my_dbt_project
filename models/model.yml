@@ -1,0 +1,99 @@
+version: 2
+
+sources:
+  - name: PUBLIC
+    database: AVA_DB
+    schema: PUBLIC
+    tables:
+      - name: RETAIL_DATA_MART
+        description: "Source table containing retail transaction data with customer, product, and stock information"
+        columns:
+          - name: CustomerID
+            description: "Unique identifier for customer"
+            tests:
+              - not_null
+          - name: Stockid
+            description: "Unique identifier for stock/store"
+            tests:
+              - not_null
+          - name: productid
+            description: "Product identifier"
+          - name: productname
+            description: "Name of the product"
+          - name: Category
+            description: "Product category"
+          - name: SubCategory
+            description: "Product sub-category"
+          - name: Sales
+            description: "Sales amount"
+          - name: Quantity
+            description: "Quantity sold"
+          - name: customername
+            description: "Customer name"
+          - name: SpendingScore
+            description: "Customer spending score"
+          - name: AnnualIncomek
+            description: "Customer annual income in thousands"
+          - name: gender
+            description: "Customer gender"
+          - name: age
+            description: "Customer age"
+          - name: customertype
+            description: "Type of customer"
+          - name: name
+            description: "Stock/store name"
+          - name: rating
+            description: "Stock/store rating"
+          - name: location
+            description: "Stock/store location"
+          - name: noofemployees
+            description: "Number of employees at stock/store"
+          - name: Invoiceid
+            description: "Invoice identifier"
+          - name: Description
+            description: "Transaction description"
+          - name: InvoiceDate
+            description: "Invoice date"
+          - name: Price
+            description: "Price of item"
+          - name: Country
+            description: "Country of transaction"
+
+models:
+  - name: DataStage_To_DBT_Conversion_1
+    description: "Aggregated count of customer transactions by CustomerID and Stockid. Converted from DataStage job: Count_Customers_Transactions_Job"
+    config:
+      materialized: table
+      tags: ['datastage_conversion', 'count_transactions']
+    columns:
+      - name: CustomerID
+        description: "Customer identifier - grouping key from source RETAIL_DATA_MART"
+        tests:
+          - not_null
+          - relationships:
+              to: source('PUBLIC', 'RETAIL_DATA_MART')
+              field: CustomerID
+      - name: Stockid
+        description: "Stock identifier - grouping key from source RETAIL_DATA_MART"
+        tests:
+          - not_null
+          - relationships:
+              to: source('PUBLIC', 'RETAIL_DATA_MART')
+              field: Stockid
+      - name: total_orders_num
+        description: "Total number of transactions/orders for each CustomerID and Stockid combination. Derived from RecCount() aggregation in DataStage Count_Transactions stage"
+        tests:
+          - not_null
+    meta:
+      datastage_job: "Count_Customers_Transactions_Job"
+      datastage_stages:
+        - name: "RETAIL_DATA_MART"
+          type: "Sequential File (Source)"
+        - name: "Count_Transactions"
+          type: "Aggregator"
+          method: "sort"
+          keys: "CustomerID, Stockid"
+        - name: "Count_Customers_Transactions"
+          type: "Sequential File (Target)"
+      conversion_date: "2024"
+      conversion_version: "1"
