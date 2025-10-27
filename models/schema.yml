@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: DataStage_To_DBT_Conversion_4
+  - name: DataStage_To_DBT_Conversion_5
     description: "Customer transaction count aggregation converted from DataStage Count_Customers_Transactions_Job"
     columns:
       - name: CUSTOMERID
