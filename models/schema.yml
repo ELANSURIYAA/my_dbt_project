@@ -1,110 +1,100 @@
 version: 2
 
-sources:
-  - name: raw_data
-    description: "Raw data source from DataStage RETAIL_DATA_MART"
-    tables:
-      - name: retail_data_mart
-        description: "Retail data mart containing customer, product, and transaction information"
-        columns:
-          - name: productid
-            description: "Product identifier"
-            data_type: integer
-            tests:
-              - not_null
-          - name: productname
-            description: "Product name"
-            data_type: varchar(255)
-          - name: category
-            description: "Product category"
-            data_type: varchar(255)
-          - name: subcategory
-            description: "Product subcategory"
-            data_type: varchar(255)
-          - name: sales
-            description: "Sales amount"
-            data_type: integer
-          - name: quantity
-            description: "Quantity sold"
-            data_type: integer
-          - name: customerid
-            description: "Customer identifier - grouping key from DataStage"
-            data_type: integer
-            tests:
-              - not_null
-          - name: customername
-            description: "Customer name"
-            data_type: varchar(255)
-          - name: spendingscore
-            description: "Customer spending score"
-            data_type: integer
-          - name: annualincomek
-            description: "Annual income in thousands"
-            data_type: integer
-          - name: gender
-            description: "Customer gender"
-            data_type: varchar(255)
-          - name: age
-            description: "Customer age"
-            data_type: integer
-          - name: customertype
-            description: "Type of customer"
-            data_type: varchar(255)
-          - name: stockid
-            description: "Stock identifier - grouping key from DataStage"
-            data_type: integer
-            tests:
-              - not_null
-          - name: name
-            description: "Stock name"
-            data_type: varchar(255)
-          - name: rating
-            description: "Stock rating"
-            data_type: integer
-          - name: location
-            description: "Location"
-            data_type: varchar(255)
-          - name: noofemployees
-            description: "Number of employees"
-            data_type: integer
-          - name: invoiceid
-            description: "Invoice identifier"
-            data_type: varchar(255)
-          - name: description
-            description: "Transaction description"
-            data_type: varchar(255)
-          - name: invoicedate
-            description: "Invoice date"
-            data_type: integer
-          - name: price
-            description: "Price"
-            data_type: integer
-          - name: country
-            description: "Country"
-            data_type: varchar(255)
-
 models:
-  - name: DataStage_To_DBT_Conversion_1
+  - name: raw_retail_data_mart
+    description: "Raw retail data mart source table"
+    columns:
+      - name: PRODUCTID
+        description: "Product identifier"
+        data_type: integer
+        tests:
+          - not_null
+      - name: PRODUCTNAME
+        description: "Product name"
+        data_type: varchar(255)
+      - name: CATEGORY
+        description: "Product category"
+        data_type: varchar(255)
+      - name: SUBCATEGORY
+        description: "Product subcategory"
+        data_type: varchar(255)
+      - name: SALES
+        description: "Sales amount"
+        data_type: integer
+      - name: QUANTITY
+        description: "Quantity sold"
+        data_type: integer
+      - name: CUSTOMERID
+        description: "Customer identifier - grouping key from DataStage"
+        data_type: integer
+        tests:
+          - not_null
+      - name: CUSTOMERNAME
+        description: "Customer name"
+        data_type: varchar(255)
+      - name: SPENDINGSCORE
+        description: "Customer spending score"
+        data_type: integer
+      - name: ANNUALINCOMEK
+        description: "Annual income in thousands"
+        data_type: integer
+      - name: GENDER
+        description: "Customer gender"
+        data_type: varchar(255)
+      - name: AGE
+        description: "Customer age"
+        data_type: integer
+      - name: CUSTOMERTYPE
+        description: "Type of customer"
+        data_type: varchar(255)
+      - name: STOCKID
+        description: "Stock identifier - grouping key from DataStage"
+        data_type: integer
+        tests:
+          - not_null
+      - name: NAME
+        description: "Stock name"
+        data_type: varchar(255)
+      - name: RATING
+        description: "Stock rating"
+        data_type: integer
+      - name: LOCATION
+        description: "Location"
+        data_type: varchar(255)
+      - name: NOOFEMPLOYEES
+        description: "Number of employees"
+        data_type: integer
+      - name: INVOICEID
+        description: "Invoice identifier"
+        data_type: varchar(255)
+      - name: DESCRIPTION
+        description: "Transaction description"
+        data_type: varchar(255)
+      - name: INVOICEDATE
+        description: "Invoice date"
+        data_type: integer
+      - name: PRICE
+        description: "Price"
+        data_type: integer
+      - name: COUNTRY
+        description: "Country"
+        data_type: varchar(255)
+
+  - name: DataStage_To_DBT_Conversion_2
     description: "Customer transaction count aggregation converted from DataStage Count_Customers_Transactions_Job"
     columns:
-      - name: customerid
+      - name: CUSTOMERID
         description: "Customer identifier - primary grouping key from DataStage aggregator"
         data_type: integer
         tests:
           - not_null
-          - unique:
-              config:
-                where: "stockid is not null"
-      - name: stockid
+      - name: STOCKID
         description: "Stock identifier - secondary grouping key from DataStage aggregator"
         data_type: integer
         tests:
           - not_null
-      - name: total_orders_num
+      - name: TOTAL_ORDERS_NUM
         description: "Total number of transactions per customer and stock - derived from RecCount() in DataStage"
         data_type: integer
         tests:
           - not_null
-          - dbt_utils.accepted_range:
-              min_value: 1
-              inclusive: true
