@@ -1,21 +1,50 @@
 version: 2
 
 models:
-  - name: DataStage_To_DBT_Conversion_5
-    description: "Customer transaction count aggregation converted from DataStage Count_Customers_Transactions_Job"
+  - name: DataStage_To_DBT_Conversion_4
+    description: "Customer transaction count aggregation converted from DataStage Count_Customers_Transactions_Job - Enhanced version with comprehensive sample data and data validation"
     columns:
       - name: CUSTOMERID
         description: "Customer identifier - primary grouping key from DataStage aggregator"
         data_type: integer
         tests:
           - not_null
+          - positive_values
       - name: STOCKID
         description: "Stock identifier - secondary grouping key from DataStage aggregator"
         data_type: integer
         tests:
           - not_null
+          - positive_values
       - name: TOTAL_ORDERS_NUM
         description: "Total number of transactions per customer and stock - derived from RecCount() in DataStage"
         data_type: integer
         tests:
           - not_null
+          - positive_values
+
+sources:
+  - name: raw_data
+    description: "Raw data sources for DataStage conversion"
+    tables:
+      - name: retail_data_mart
+        description: "Original DataStage source table RETAIL_DATA_MART"
+        columns:
+          - name: CUSTOMERID
+            description: "Customer identifier"
+            data_type: integer
+          - name: STOCKID
+            description: "Stock identifier"
+            data_type: integer
+          - name: PRODUCTID
+            description: "Product identifier"
+            data_type: integer
+          - name: PRODUCTNAME
+            description: "Product name"
+            data_type: varchar
+          - name: CATEGORY
+            description: "Product category"
+            data_type: varchar
+          - name: SUBCATEGORY
+            description: "Product subcategory"
+            data_type: varchar
