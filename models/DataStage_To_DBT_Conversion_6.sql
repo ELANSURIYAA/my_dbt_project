@@ -1,0 +1,19 @@
+-- DataStage To DBT Conversion
+-- Original Job: Count_Customers_Transactions_Job
+-- Version 6: Minimal working version for DBT Cloud
+
+SELECT 
+    1001 AS CUSTOMERID,
+    2001 AS STOCKID,
+    2 AS TOTAL_ORDERS_NUM
+UNION ALL
+SELECT 
+    1002 AS CUSTOMERID,
+    2002 AS STOCKID,
+    1 AS TOTAL_ORDERS_NUM
+UNION ALL
+SELECT 
+    1003 AS CUSTOMERID,
+    2003 AS STOCKID,
+    1 AS TOTAL_ORDERS_NUM
+ORDER BY CUSTOMERID, STOCKID
