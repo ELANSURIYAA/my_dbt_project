@@ -1,0 +1,75 @@
+Warehouse: AVA_WAREHOUSE
+DB: AVA_DB
+Schema: PUBLIC
+
+-- Source Tables
+
+CREATE OR REPLACE TABLE customer_dim (
+    customer_id      NUMBER(10,0)    NOT NULL,
+    customername     VARCHAR(255)    NOT NULL,
+    spending_score   NUMBER(10,0)    NOT NULL,
+    annual_incomek   NUMBER(10,0)    NOT NULL,
+    gender           VARCHAR(255)    NOT NULL,
+    age              NUMBER(10,0)    NOT NULL,
+    customertype     VARCHAR(255)    NOT NULL,
+    PRIMARY KEY (customer_id)
+);
+
+CREATE OR REPLACE TABLE retail_dim (
+    stockid          NUMBER(10,0)    NOT NULL,
+    name             VARCHAR(255)    NOT NULL,
+    rating           NUMBER(10,0)    NOT NULL,
+    location         VARCHAR(255)    NOT NULL,
+    noofemployees    NUMBER(10,0)    NOT NULL,
+    PRIMARY KEY (stockid)
+);
+
+CREATE OR REPLACE TABLE transactions_fact (
+    stockid          NUMBER(10,0)    NOT NULL,
+    invoiceid        VARCHAR(255)    NOT NULL,
+    description      VARCHAR(255)    NOT NULL,
+    quantity         NUMBER(10,0)    NOT NULL,
+    invoice_date     VARCHAR(50)     NOT NULL,
+    price            NUMBER(10,0)    NOT NULL,
+    customer_id      NUMBER(10,0)    NOT NULL,
+    country          VARCHAR(255)    NOT NULL,
+    productid        NUMBER(10,0)    NOT NULL
+);
+
+CREATE OR REPLACE TABLE product_dim (
+    productid        NUMBER(10,0)    NOT NULL,
+    productname      VARCHAR(255)    NOT NULL,
+    category         VARCHAR(255)    NOT NULL,
+    subcategory      VARCHAR(255)    NOT NULL,
+    sales            NUMBER(10,0)    NOT NULL,
+    quantity         NUMBER(10,0)    NOT NULL,
+    PRIMARY KEY (productid)
+);
+
+-- Target Table
+
+CREATE OR REPLACE TABLE retail_data_mart (
+    productid        NUMBER(10,0)    NOT NULL,
+    productname      VARCHAR(255)    NOT NULL,
+    category         VARCHAR(255)    NOT NULL,
+    subcategory      VARCHAR(255)    NOT NULL,
+    sales            NUMBER(10,0)    NOT NULL,
+    quantity         NUMBER(10,0)    NOT NULL,
+    customer_id      NUMBER(10,0)    NOT NULL,
+    customername     VARCHAR(255)    NOT NULL,
+    spending_score   NUMBER(10,0)    NOT NULL,
+    annual_incomek   NUMBER(10,0)    NOT NULL,
+    gender           VARCHAR(255)    NOT NULL,
+    age              NUMBER(10,0)    NOT NULL,
+    customertype     VARCHAR(255)    NOT NULL,
+    stockid          NUMBER(10,0)    NOT NULL,
+    name             VARCHAR(255)    NOT NULL,
+    rating           NUMBER(10,0)    NOT NULL,
+    location         VARCHAR(255)    NOT NULL,
+    noofemployees    NUMBER(10,0)    NOT NULL,
+    invoiceid        VARCHAR(255)    NOT NULL,
+    description      VARCHAR(255)    NOT NULL,
+    invoice_date     NUMBER(10,0)    NOT NULL,
+    price            NUMBER(10,0)    NOT NULL,
+    country          VARCHAR(255)    NOT NULL
+);
