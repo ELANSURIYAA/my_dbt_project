@@ -73,6 +73,8 @@ sources:
             description: "Source system identifier"
           - name: UPDATED_DATE
             description: "Timestamp of last update from source"
+          - name: BATCH_ID
+            description: "Batch identifier for audit tracking"
 
       - name: ETL_AUDIT_LOG
         description: "Job execution logging for ETL processes"
