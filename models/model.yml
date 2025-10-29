@@ -6,7 +6,7 @@ sources:
     schema: PUBLIC
     description: "Source tables for DataStage to DBT conversion"
     tables:
-      - name: RETAIL_DATA_MART
+      - name: retail_data_mart
         description: "Retail data mart source table containing product, customer, stock, and transaction information"
         columns:
           - name: productid
@@ -15,19 +15,19 @@ sources:
           - name: productname
             description: "Name of the product"
             data_type: VARCHAR(255)
-          - name: Category
+          - name: category
             description: "Product category"
             data_type: VARCHAR(255)
-          - name: SubCategory
+          - name: subcategory
             description: "Product sub-category"
             data_type: VARCHAR(255)
-          - name: Sales
+          - name: sales
             description: "Sales amount"
             data_type: INTEGER
-          - name: Quantity
+          - name: quantity
             description: "Quantity sold"
             data_type: INTEGER
-          - name: CustomerID
+          - name: customerid
             description: "Customer identifier - used as grouping key"
             data_type: INTEGER
             tests:
@@ -35,10 +35,10 @@ sources:
           - name: customername
             description: "Customer name"
             data_type: VARCHAR(255)
-          - name: SpendingScore
+          - name: spendingscore
             description: "Customer spending score"
             data_type: INTEGER
-          - name: AnnualIncomek
+          - name: annualincomek
             description: "Customer annual income in thousands"
             data_type: INTEGER
           - name: gender
@@ -50,7 +50,7 @@ sources:
           - name: customertype
             description: "Type of customer"
             data_type: VARCHAR(255)
-          - name: Stockid
+          - name: stockid
             description: "Stock identifier - used as grouping key"
             data_type: INTEGER
             tests:
@@ -67,49 +67,50 @@ sources:
           - name: noofemployees
             description: "Number of employees at stock/store"
             data_type: INTEGER
-          - name: Invoiceid
+          - name: invoiceid
             description: "Invoice identifier"
             data_type: VARCHAR(255)
-          - name: Description
+          - name: description
             description: "Transaction description"
             data_type: VARCHAR(255)
-          - name: InvoiceDate
+          - name: invoicedate
             description: "Invoice date"
             data_type: INTEGER
-          - name: Price
+          - name: price
             description: "Price of item"
             data_type: INTEGER
-          - name: Country
+          - name: country
             description: "Country of transaction"
             data_type: VARCHAR(255)
 
 models:
-  - name: DataStage_To_DBT_Conversion_1
-    description: "Count of customer transactions aggregated by CustomerID and Stockid. Converted from DataStage job: Count_Customers_Transactions_Job"
+  - name: DataStage_To_DBT_Conversion_2
+    description: "Count of customer transactions aggregated by CustomerID and Stockid. Converted from DataStage job: Count_Customers_Transactions_Job. Version 2 with lowercase column names for Snowflake compatibility."
     config:
       materialized: table
       tags: ['datastage_conversion', 'count_transactions']
       database: AVA_DB
       schema: PUBLIC
+      alias: count_customers_transactions
     columns:
-      - name: CustomerID
-        description: "Customer identifier - grouping key from RETAIL_DATA_MART"
+      - name: customerid
+        description: "Customer identifier - grouping key from retail_data_mart"
         data_type: INTEGER
         tests:
           - not_null
           - relationships:
-              to: source('PUBLIC', 'RETAIL_DATA_MART')
-              field: CustomerID
-      - name: Stockid
-        description: "Stock identifier - grouping key from RETAIL_DATA_MART"
+              to: source('PUBLIC', 'retail_data_mart')
+              field: customerid
+      - name: stockid
+        description: "Stock identifier - grouping key from retail_data_mart"
         data_type: INTEGER
         tests:
           - not_null
           - relationships:
-              to: source('PUBLIC', 'RETAIL_DATA_MART')
-              field: Stockid
+              to: source('PUBLIC', 'retail_data_mart')
+              field: stockid
       - name: total_orders_num
-        description: "Count of transactions per CustomerID and Stockid combination. Derived from DataStage RecCount() function"
+        description: "Count of transactions per customerid and stockid combination. Derived from DataStage RecCount() function"
         data_type: INTEGER
         tests:
           - not_null
@@ -133,5 +134,5 @@ models:
           operator: "export"
           file: "C:\\case_study\\Output_Data\\Count_Customers_Transactions.txt"
       conversion_date: "2024"
-      conversion_version: "1"
-      conversion_notes: "Initial conversion from DataStage to DBT. Aggregation logic preserved with GROUP BY and COUNT(*) matching DataStage group operator with sort method."
+      conversion_version: "2"
+      conversion_notes: "Version 2: Fixed case sensitivity issues. Changed all column and table names to lowercase for Snowflake compatibility. Aggregation logic preserved with GROUP BY and COUNT(*) matching DataStage group operator with sort method."
