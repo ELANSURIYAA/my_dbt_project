@@ -8,90 +8,13 @@ sources:
     tables:
       - name: RETAIL_DATA_MART
         description: "Retail data mart source table containing product, customer, stock, and transaction information"
-        columns:
-          - name: PRODUCTID
-            description: "Product identifier"
-            data_type: INTEGER
-          - name: PRODUCTNAME
-            description: "Name of the product"
-            data_type: VARCHAR(255)
-          - name: CATEGORY
-            description: "Product category"
-            data_type: VARCHAR(255)
-          - name: SUBCATEGORY
-            description: "Product sub-category"
-            data_type: VARCHAR(255)
-          - name: SALES
-            description: "Sales amount"
-            data_type: INTEGER
-          - name: QUANTITY
-            description: "Quantity sold"
-            data_type: INTEGER
-          - name: CUSTOMERID
-            description: "Customer identifier - used as grouping key"
-            data_type: INTEGER
-            tests:
-              - not_null
-          - name: CUSTOMERNAME
-            description: "Customer name"
-            data_type: VARCHAR(255)
-          - name: SPENDINGSCORE
-            description: "Customer spending score"
-            data_type: INTEGER
-          - name: ANNUALINCOMEK
-            description: "Customer annual income in thousands"
-            data_type: INTEGER
-          - name: GENDER
-            description: "Customer gender"
-            data_type: VARCHAR(255)
-          - name: AGE
-            description: "Customer age"
-            data_type: INTEGER
-          - name: CUSTOMERTYPE
-            description: "Type of customer"
-            data_type: VARCHAR(255)
-          - name: STOCKID
-            description: "Stock identifier - used as grouping key"
-            data_type: INTEGER
-            tests:
-              - not_null
-          - name: NAME
-            description: "Stock/store name"
-            data_type: VARCHAR(255)
-          - name: RATING
-            description: "Stock/store rating"
-            data_type: INTEGER
-          - name: LOCATION
-            description: "Stock/store location"
-            data_type: VARCHAR(255)
-          - name: NOOFEMPLOYEES
-            description: "Number of employees at stock/store"
-            data_type: INTEGER
-          - name: INVOICEID
-            description: "Invoice identifier"
-            data_type: VARCHAR(255)
-          - name: DESCRIPTION
-            description: "Transaction description"
-            data_type: VARCHAR(255)
-          - name: INVOICEDATE
-            description: "Invoice date"
-            data_type: INTEGER
-          - name: PRICE
-            description: "Price of item"
-            data_type: INTEGER
-          - name: COUNTRY
-            description: "Country of transaction"
-            data_type: VARCHAR(255)
 
 models:
-  - name: DataStage_To_DBT_Conversion_3
-    description: "Count of customer transactions aggregated by CUSTOMERID and STOCKID. Converted from DataStage job: Count_Customers_Transactions_Job. Version 3 with direct table reference and uppercase column names."
+  - name: DataStage_To_DBT_Conversion_4
+    description: "Count of customer transactions aggregated by CUSTOMERID and STOCKID. Converted from DataStage job: Count_Customers_Transactions_Job. Version 4 with simplified configuration."
     config:
       materialized: table
-      tags: ['datastage_conversion', 'count_transactions']
-      database: AVA_DB
       schema: PUBLIC
-      alias: count_customers_transactions
     columns:
       - name: CUSTOMERID
         description: "Customer identifier - grouping key from RETAIL_DATA_MART"
@@ -128,5 +51,5 @@ models:
           operator: "export"
           file: "C:\\case_study\\Output_Data\\Count_Customers_Transactions.txt"
       conversion_date: "2024"
-      conversion_version: "3"
-      conversion_notes: "Version 3: Removed source() macro and using direct table reference AVA_DB.PUBLIC.RETAIL_DATA_MART. Changed all column names to uppercase to match Snowflake default behavior. Aggregation logic preserved with GROUP BY and COUNT(*) matching DataStage group operator with sort method."
+      conversion_version: "4"
+      conversion_notes: "Version 4: Simplified configuration by removing alias and database config. Using direct SQL query with AVA_DB.PUBLIC.RETAIL_DATA_MART reference. Aggregation logic preserved with GROUP BY and COUNT(*) matching DataStage group operator with sort method."
