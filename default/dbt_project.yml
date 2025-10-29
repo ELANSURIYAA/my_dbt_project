@@ -1,0 +1,41 @@
+name: 'my_dbt_project'
+version: '1.0.0'
+config-version: 2
+
+profile: 'default'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  run_date: "{{ run_started_at.strftime('%Y-%m-%d') }}"
+  batch_id: "BATCH_{{ run_started_at.strftime('%Y%m%d') }}"
+
+models:
+  my_dbt_project:
+    +materialized: table
+    +schema: public
+    +database: AVA_DB
+    
+    # Disable older versions, only run the latest
+    DataStage_To_DBT_Conversion_1:
+      +enabled: false
+    DataStage_To_DBT_Conversion_2:
+      +enabled: false
+    DataStage_To_DBT_Conversion_3:
+      +enabled: false
+    DataStage_To_DBT_Conversion_4:
+      +enabled: true
+      +materialized: table
+      +tags:
+        - datastage_conversion
+        - scd_type2
