@@ -1,0 +1,126 @@
+version: 2
+
+# Source definitions for Snowflake tables
+sources:
+  - name: public
+    database: AVA_DB
+    schema: PUBLIC
+    tables:
+      - name: POLICY_SRC
+        description: "Source policy data feed for SCD2 load from POLICY_SYS"
+        columns:
+          - name: POLICY_ID
+            description: "Unique policy business key"
+            tests:
+              - not_null
+              - unique
+          - name: POLICY_HOLDER_NAME
+            description: "Name of the policy holder"
+          - name: POLICY_TYPE
+            description: "Type/category of the policy"
+          - name: PREMIUM_AMOUNT
+            description: "Premium amount for the policy"
+          - name: START_DATE
+            description: "Policy start date"
+          - name: END_DATE
+            description: "Policy end date"
+          - name: UPDATED_DATE
+            description: "Timestamp of last source update"
+            tests:
+              - not_null
+          - name: SOURCE_SYSTEM
+            description: "Source system identifier"
+
+      - name: DIM_POLICY
+        description: "Policy dimension table (SCD Type 2)"
+        columns:
+          - name: POLICY_KEY
+            description: "Surrogate key for DW usage (auto-increment)"
+            tests:
+              - not_null
+              - unique
+          - name: POLICY_ID
+            description: "Business key - Policy ID"
+            tests:
+              - not_null
+          - name: POLICY_HOLDER_NAME
+            description: "Name of the policy holder"
+          - name: POLICY_TYPE
+            description: "Type/category of the policy"
+          - name: PREMIUM_AMOUNT
+            description: "Premium amount for the policy"
+          - name: START_DATE
+            description: "Policy start date"
+          - name: END_DATE
+            description: "Policy end date"
+          - name: EFFECTIVE_FROM
+            description: "SCD Type 2 - Effective start date of this version"
+            tests:
+              - not_null
+          - name: EFFECTIVE_TO
+            description: "SCD Type 2 - Effective end date of this version (NULL for current)"
+          - name: CURRENT_FLAG
+            description: "Y = Current active record, N = Historical"
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['Y', 'N']
+          - name: VERSION_NO
+            description: "Version number for this policy record"
+            tests:
+              - not_null
+          - name: SOURCE_SYSTEM
+            description: "Source system identifier"
+          - name: UPDATED_DATE
+            description: "Timestamp of last update from source"
+
+# Model definitions
+models:
+  - name: DataStage_To_DBT_Conversion_1
+    description: "SCD Type 2 implementation for DIM_POLICY dimension - converted from DataStage job SCD2_DIM_POLICY_Load"
+    config:
+      materialized: incremental
+      unique_key: POLICY_KEY
+      tags:
+        - datastage_conversion
+        - scd_type2
+        - dim_policy
+    columns:
+      - name: POLICY_KEY
+        description: "Surrogate key for DW usage (auto-generated)"
+        tests:
+          - unique
+      - name: POLICY_ID
+        description: "Business key - Policy ID from source system"
+        tests:
+          - not_null
+      - name: POLICY_HOLDER_NAME
+        description: "Name of the policy holder"
+      - name: POLICY_TYPE
+        description: "Type/category of the policy"
+      - name: PREMIUM_AMOUNT
+        description: "Premium amount for the policy"
+      - name: START_DATE
+        description: "Policy start date"
+      - name: END_DATE
+        description: "Policy end date"
+      - name: EFFECTIVE_FROM
+        description: "SCD Type 2 - Effective start date of this version"
+        tests:
+          - not_null
+      - name: EFFECTIVE_TO
+        description: "SCD Type 2 - Effective end date (NULL for current records)"
+      - name: CURRENT_FLAG
+        description: "Y = Current active record, N = Historical record"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Y', 'N']
+      - name: VERSION_NO
+        description: "Version number for this policy record (increments with each change)"
+        tests:
+          - not_null
+      - name: SOURCE_SYSTEM
+        description: "Source system identifier"
+      - name: UPDATED_DATE
+        description: "Timestamp of last update from source system"
