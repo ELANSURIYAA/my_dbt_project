@@ -11,7 +11,7 @@ sources:
 
 models:
   - name: DataStage_To_DBT_Conversion_4
-    description: "Count of customer transactions aggregated by CUSTOMERID and STOCKID. Converted from DataStage job: Count_Customers_Transactions_Job. Version 4 with simplified configuration."
+    description: "Count of customer transactions aggregated by CUSTOMERID and STOCKID. Converted from DataStage job: Count_Customers_Transactions_Job. Version 4 with optimized query structure."
     config:
       materialized: table
       schema: PUBLIC
@@ -52,4 +52,4 @@ models:
           file: "C:\\case_study\\Output_Data\\Count_Customers_Transactions.txt"
       conversion_date: "2024"
       conversion_version: "4"
-      conversion_notes: "Version 4: Simplified configuration by removing alias and database config. Using direct SQL query with AVA_DB.PUBLIC.RETAIL_DATA_MART reference. Aggregation logic preserved with GROUP BY and COUNT(*) matching DataStage group operator with sort method."
+      conversion_notes: "Version 4: Optimized query structure with simplified configuration. Removed database config from model config. Using direct SQL query with AVA_DB.PUBLIC.RETAIL_DATA_MART reference. Aggregation logic preserved with GROUP BY and COUNT(*) matching DataStage group operator with sort method. Applied general optimizations as user requested changes without specific details."
