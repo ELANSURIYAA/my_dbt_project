@@ -74,104 +74,36 @@ sources:
           - name: UPDATED_DATE
             description: "Timestamp of last update from source"
 
-      - name: ETL_AUDIT_LOG
-        description: "Job execution logging for ETL processes - tracks batch execution metrics"
-        columns:
-          - name: JOB_NAME
-            description: "Name of the ETL job (e.g., SCD2_DIM_POLICY)"
-            tests:
-              - not_null
-          - name: BATCH_ID
-            description: "Unique batch identifier for this execution"
-            tests:
-              - not_null
-          - name: START_TIME
-            description: "Job start timestamp"
-            tests:
-              - not_null
-          - name: END_TIME
-            description: "Job end timestamp"
-          - name: SOURCE_COUNT
-            description: "Number of records read from source"
-          - name: TARGET_INSERTS
-            description: "Number of records inserted into target"
-          - name: TARGET_UPDATES
-            description: "Number of records updated in target"
-          - name: STATUS
-            description: "Job execution status (RUNNING, SUCCESS, FAILED)"
-            tests:
-              - accepted_values:
-                  values: ['RUNNING', 'SUCCESS', 'FAILED']
-          - name: ERROR_MESSAGE
-            description: "Error message if job failed"
-
-      - name: DIM_POLICY_AUDIT
-        description: "Dimensional change tracking history for DIM_POLICY - logs all SCD Type 2 changes"
-        columns:
-          - name: POLICY_KEY
-            description: "Reference to DIM_POLICY surrogate key"
-          - name: POLICY_ID
-            description: "Business key - Policy ID"
-          - name: CHANGE_TYPE
-            description: "Type of change (INSERT, UPDATE, DELETE)"
-          - name: CHANGE_DATE
-            description: "Date when the change occurred"
-          - name: OLD_VALUE
-            description: "Previous attribute values (pipe-delimited)"
-          - name: NEW_VALUE
-            description: "New attribute values (pipe-delimited)"
-          - name: BATCH_ID
-            description: "Batch identifier linking to ETL_AUDIT_LOG"
-
-      - name: DIM_POLICY_REJECTS
-        description: "Validation error logging for rejected policy records"
-        columns:
-          - name: POLICY_ID
-            description: "Policy ID from rejected record"
-          - name: ERROR_DESC
-            description: "Description of validation error"
-          - name: RAW_DATA
-            description: "Raw data from rejected record (pipe-delimited)"
-          - name: REJECT_TIMESTAMP
-            description: "Timestamp when record was rejected"
-          - name: BATCH_ID
-            description: "Batch identifier for traceability"
-
 # Model definitions
 models:
-  - name: DataStage_To_DBT_Conversion_2
+  - name: DataStage_To_DBT_Conversion_4
     description: |
-      Enhanced SCD Type 2 implementation for DIM_POLICY dimension - converted from DataStage job SCD2_DIM_POLICY_Load
+      SCD Type 2 implementation for DIM_POLICY dimension - converted from DataStage job SCD2_DIM_POLICY_Load
       
-      Version 2 Enhancements:
-      - Complete audit framework with ETL_AUDIT_LOG integration
-      - Comprehensive validation and reject handling
-      - Pre-hook and post-hook for audit logging
-      - Dimension audit table (DIM_POLICY_AUDIT) for change tracking
-      - All DSX job parameters implemented as DBT variables
-      - Clustering strategy on (POLICY_ID, EFFECTIVE_FROM)
-      - Error handling for NULL checks and business rules
+      This model implements Slowly Changing Dimension Type 2 logic:
+      - Detects new records and inserts them with VERSION_NO=1
+      - Detects changed records and creates new versions
+      - Expires old versions by setting CURRENT_FLAG='N' and EFFECTIVE_TO date
+      - Maintains full history of all changes
       
-      DataStage Job Parameters (as DBT variables):
-      - run_date: Run date (YYYY-MM-DD) used as effective date
-      - commit_batch: DB commit batch size (default: 10000)
-      - log_path: Path for reject/audit files
-      - batch_id: Batch identifier for audit tracking
+      DataStage Job: SCD2_DIM_POLICY_Load.dsx
+      Source: PUBLIC.POLICY_SRC
+      Target: PUBLIC.DIM_POLICY
+      
+      Key Features:
+      - Natural key: POLICY_ID
+      - Tracked attributes: POLICY_HOLDER_NAME, POLICY_TYPE, PREMIUM_AMOUNT, START_DATE, END_DATE
+      - Version management with VERSION_NO
+      - Effective dating with EFFECTIVE_FROM and EFFECTIVE_TO
+      - Current flag management (Y/N)
+      - Data validation and quality checks
       
       Partitioning Strategy:
       - DataStage: Hash partitioning on POLICY_ID
       - Snowflake: Cluster by (POLICY_ID, EFFECTIVE_FROM)
-      
-      Connection Details:
-      - Source: Snowflake AVA_DB.PUBLIC.POLICY_SRC
-      - Target: Snowflake AVA_DB.PUBLIC.DIM_POLICY
-      - Audit: Snowflake AVA_DB.PUBLIC.ETL_AUDIT_LOG
-      - Dimension Audit: Snowflake AVA_DB.PUBLIC.DIM_POLICY_AUDIT
-      - Rejects: Snowflake AVA_DB.PUBLIC.DIM_POLICY_REJECTS
     
     config:
-      materialized: incremental
-      unique_key: POLICY_KEY
+      materialized: table
       cluster_by:
         - POLICY_ID
         - EFFECTIVE_FROM
@@ -179,14 +111,8 @@ models:
         - datastage_conversion
         - scd_type2
         - dim_policy
-        - audit_enabled
     
     columns:
-      - name: POLICY_KEY
-        description: "Surrogate key for DW usage (auto-generated by Snowflake AUTOINCREMENT)"
-        tests:
-          - unique
-      
       - name: POLICY_ID
         description: "Business key - Policy ID from source system (natural key for SCD Type 2)"
         tests:
@@ -208,12 +134,12 @@ models:
         description: "Policy end date (SCD Type 2 tracked attribute)"
       
       - name: EFFECTIVE_FROM
-        description: "SCD Type 2 - Effective start date of this version (set to run_date for new versions)"
+        description: "SCD Type 2 - Effective start date of this version (set to current date for new versions)"
         tests:
           - not_null
       
       - name: EFFECTIVE_TO
-        description: "SCD Type 2 - Effective end date (NULL for current records, run_date-1 for expired records)"
+        description: "SCD Type 2 - Effective end date (NULL for current records, yesterday's date for expired records)"
       
       - name: CURRENT_FLAG
         description: "Y = Current active record, N = Historical record (managed by SCD Type 2 logic)"
@@ -232,37 +158,28 @@ models:
       
       - name: UPDATED_DATE
         description: "Timestamp of last update from source system (from POLICY_SRC.UPDATED_DATE)"
-      
-      - name: BATCH_ID
-        description: "Batch identifier for audit trail (links to ETL_AUDIT_LOG and DIM_POLICY_AUDIT)"
 
     meta:
       datastage_job: SCD2_DIM_POLICY_Load
+      datastage_version: Version 4
+      conversion_date: 2025-10-29
+      
       datastage_stages:
         - name: SRC_POLICY
           type: OracleConnector
           description: "Source: STAGING.POLICY_SRC"
         - name: LOOKUP_DIM_POLICY
           type: Lookup
-          description: "Lookup current rows from DWH.DIM_POLICY"
+          description: "Lookup current rows from DWH.DIM_POLICY (CURRENT_FLAG='Y')"
         - name: TRANS_DETECT
           type: Transformer
           description: "Detect new/changed rows and prepare SCD fields"
         - name: SCD_MANAGER
           type: SlowlyChangingDimension
-          description: "SCD Type 2 Manager"
+          description: "SCD Type 2 Manager (InsertNewVersion, SetCurrentToNAndSetEndDate)"
         - name: TGT_DIM_POLICY
           type: OracleConnector
           description: "Target: DWH.DIM_POLICY"
-        - name: REJECTS
-          type: SequentialFile
-          description: "Rejected rows and validation errors"
-        - name: AUDIT_INSERT
-          type: OracleStoredProcedure
-          description: "Insert audit record before job"
-        - name: AUDIT_UPDATE
-          type: OracleStoredProcedure
-          description: "Update audit record after job"
       
       validation_rules:
         - "POLICY_ID must not be NULL"
@@ -285,11 +202,3 @@ models:
         current_flag_column: CURRENT_FLAG
         insert_strategy: InsertNewVersion
         expire_strategy: SetCurrentToNAndSetEndDate
-      
-      audit_framework:
-        pre_hook: "Insert audit record with status=RUNNING"
-        post_hook_1: "Update audit record with execution metrics"
-        post_hook_2: "Insert change tracking records into DIM_POLICY_AUDIT"
-        audit_table: ETL_AUDIT_LOG
-        dimension_audit_table: DIM_POLICY_AUDIT
-        reject_table: DIM_POLICY_REJECTS
