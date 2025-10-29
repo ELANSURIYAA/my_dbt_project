@@ -1,0 +1,122 @@
+Warehouse: AVA_WAREHOUSE
+DB: AVA_DB
+Schema: PUBLIC
+
+
+-- =====================================================
+
+-- Table: PUBLIC.POLICY_SRC
+
+-- Purpose: Source feed for Policy dimension SCD Type 2 job
+
+-- =====================================================
+ 
+CREATE TABLE IF NOT EXISTS PUBLIC.POLICY_SRC (
+
+    POLICY_ID             NUMBER(12)        NOT NULL,
+
+    POLICY_HOLDER_NAME    VARCHAR(100),
+
+    POLICY_TYPE           VARCHAR(50),
+
+    PREMIUM_AMOUNT        NUMBER(10,2),
+
+    START_DATE            DATE,
+
+    END_DATE              DATE,
+
+    UPDATED_DATE          TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+
+    SOURCE_SYSTEM         VARCHAR(50) DEFAULT 'POLICY_SYS',
+
+    CONSTRAINT PK_POLICY_SRC PRIMARY KEY (POLICY_ID)
+
+);
+ 
+COMMENT ON TABLE PUBLIC.POLICY_SRC IS 'Source policy data feed for SCD2 load';
+
+COMMENT ON COLUMN PUBLIC.POLICY_SRC.POLICY_ID IS 'Unique policy business key';
+
+COMMENT ON COLUMN PUBLIC.POLICY_SRC.UPDATED_DATE IS 'Timestamp of last source update';
+ 
+ 
+-- =====================================================
+
+-- Table: PUBLIC.DIM_POLICY
+
+-- Purpose: Slowly Changing Dimension (Type 2) for policies
+
+-- =====================================================
+ 
+CREATE TABLE IF NOT EXISTS PUBLIC.DIM_POLICY (
+
+    POLICY_KEY            NUMBER AUTOINCREMENT START 1 INCREMENT 1 NOT NULL,
+
+    POLICY_ID             NUMBER(12)        NOT NULL,
+
+    POLICY_HOLDER_NAME    VARCHAR(100),
+
+    POLICY_TYPE           VARCHAR(50),
+
+    PREMIUM_AMOUNT        NUMBER(10,2),
+
+    START_DATE            DATE,
+
+    END_DATE              DATE,
+
+    EFFECTIVE_FROM        DATE              NOT NULL,
+
+    EFFECTIVE_TO          DATE,
+
+    CURRENT_FLAG          CHAR(1) DEFAULT 'Y',
+
+    VERSION_NO            NUMBER(5) DEFAULT 1,
+
+    SOURCE_SYSTEM         VARCHAR(50),
+
+    UPDATED_DATE          TIMESTAMP,
+
+    CONSTRAINT PK_DIM_POLICY PRIMARY KEY (POLICY_KEY),
+
+    CONSTRAINT UK_DIM_POLICY UNIQUE (POLICY_ID, EFFECTIVE_FROM)
+
+);
+ 
+COMMENT ON TABLE PUBLIC.DIM_POLICY IS 'Policy dimension table (SCD Type 2)';
+
+COMMENT ON COLUMN PUBLIC.DIM_POLICY.POLICY_KEY IS 'Surrogate key for DW usage';
+
+COMMENT ON COLUMN PUBLIC.DIM_POLICY.CURRENT_FLAG IS 'Y = Current active record, N = Historical';
+ 
+ 
+-- =====================================================
+
+-- Table: PUBLIC.ETL_AUDIT_LOG
+
+-- Purpose: Job execution logging for ETL processes
+
+-- =====================================================
+ 
+CREATE TABLE IF NOT EXISTS PUBLIC.ETL_AUDIT_LOG (
+
+    JOB_NAME          VARCHAR(100),
+
+    BATCH_ID          VARCHAR(50),
+
+    START_TIME        TIMESTAMP,
+
+    END_TIME          TIMESTAMP,
+
+    SOURCE_COUNT      NUMBER,
+
+    TARGET_INSERTS    NUMBER,
+
+    TARGET_UPDATES    NUMBER,
+
+    STATUS            VARCHAR(20),
+
+    ERROR_MESSAGE     VARCHAR(4000)
+
+);
+
+ 
