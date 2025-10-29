@@ -16,17 +16,13 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
-vars:
-  run_date: "{{ run_started_at.strftime('%Y-%m-%d') }}"
-  batch_id: "BATCH_{{ run_started_at.strftime('%Y%m%d') }}"
-
 models:
   my_dbt_project:
     +materialized: table
     +schema: public
     +database: AVA_DB
     
-    # Disable older versions, only run the latest
+    # Disable all older versions
     DataStage_To_DBT_Conversion_1:
       +enabled: false
     DataStage_To_DBT_Conversion_2:
@@ -34,8 +30,7 @@ models:
     DataStage_To_DBT_Conversion_3:
       +enabled: false
     DataStage_To_DBT_Conversion_4:
+      +enabled: false
+    DataStage_To_DBT_Conversion_5:
       +enabled: true
       +materialized: table
-      +tags:
-        - datastage_conversion
-        - scd_type2
