@@ -6,86 +6,86 @@ sources:
     schema: PUBLIC
     description: "Source tables for DataStage to DBT conversion"
     tables:
-      - name: retail_data_mart
+      - name: RETAIL_DATA_MART
         description: "Retail data mart source table containing product, customer, stock, and transaction information"
         columns:
-          - name: productid
+          - name: PRODUCTID
             description: "Product identifier"
             data_type: INTEGER
-          - name: productname
+          - name: PRODUCTNAME
             description: "Name of the product"
             data_type: VARCHAR(255)
-          - name: category
+          - name: CATEGORY
             description: "Product category"
             data_type: VARCHAR(255)
-          - name: subcategory
+          - name: SUBCATEGORY
             description: "Product sub-category"
             data_type: VARCHAR(255)
-          - name: sales
+          - name: SALES
             description: "Sales amount"
             data_type: INTEGER
-          - name: quantity
+          - name: QUANTITY
             description: "Quantity sold"
             data_type: INTEGER
-          - name: customerid
+          - name: CUSTOMERID
             description: "Customer identifier - used as grouping key"
             data_type: INTEGER
             tests:
               - not_null
-          - name: customername
+          - name: CUSTOMERNAME
             description: "Customer name"
             data_type: VARCHAR(255)
-          - name: spendingscore
+          - name: SPENDINGSCORE
             description: "Customer spending score"
             data_type: INTEGER
-          - name: annualincomek
+          - name: ANNUALINCOMEK
             description: "Customer annual income in thousands"
             data_type: INTEGER
-          - name: gender
+          - name: GENDER
             description: "Customer gender"
             data_type: VARCHAR(255)
-          - name: age
+          - name: AGE
             description: "Customer age"
             data_type: INTEGER
-          - name: customertype
+          - name: CUSTOMERTYPE
             description: "Type of customer"
             data_type: VARCHAR(255)
-          - name: stockid
+          - name: STOCKID
             description: "Stock identifier - used as grouping key"
             data_type: INTEGER
             tests:
               - not_null
-          - name: name
+          - name: NAME
             description: "Stock/store name"
             data_type: VARCHAR(255)
-          - name: rating
+          - name: RATING
             description: "Stock/store rating"
             data_type: INTEGER
-          - name: location
+          - name: LOCATION
             description: "Stock/store location"
             data_type: VARCHAR(255)
-          - name: noofemployees
+          - name: NOOFEMPLOYEES
             description: "Number of employees at stock/store"
             data_type: INTEGER
-          - name: invoiceid
+          - name: INVOICEID
             description: "Invoice identifier"
             data_type: VARCHAR(255)
-          - name: description
+          - name: DESCRIPTION
             description: "Transaction description"
             data_type: VARCHAR(255)
-          - name: invoicedate
+          - name: INVOICEDATE
             description: "Invoice date"
             data_type: INTEGER
-          - name: price
+          - name: PRICE
             description: "Price of item"
             data_type: INTEGER
-          - name: country
+          - name: COUNTRY
             description: "Country of transaction"
             data_type: VARCHAR(255)
 
 models:
-  - name: DataStage_To_DBT_Conversion_2
-    description: "Count of customer transactions aggregated by CustomerID and Stockid. Converted from DataStage job: Count_Customers_Transactions_Job. Version 2 with lowercase column names for Snowflake compatibility."
+  - name: DataStage_To_DBT_Conversion_3
+    description: "Count of customer transactions aggregated by CUSTOMERID and STOCKID. Converted from DataStage job: Count_Customers_Transactions_Job. Version 3 with direct table reference and uppercase column names."
     config:
       materialized: table
       tags: ['datastage_conversion', 'count_transactions']
@@ -93,24 +93,18 @@ models:
       schema: PUBLIC
       alias: count_customers_transactions
     columns:
-      - name: customerid
-        description: "Customer identifier - grouping key from retail_data_mart"
+      - name: CUSTOMERID
+        description: "Customer identifier - grouping key from RETAIL_DATA_MART"
         data_type: INTEGER
         tests:
           - not_null
-          - relationships:
-              to: source('PUBLIC', 'retail_data_mart')
-              field: customerid
-      - name: stockid
-        description: "Stock identifier - grouping key from retail_data_mart"
+      - name: STOCKID
+        description: "Stock identifier - grouping key from RETAIL_DATA_MART"
         data_type: INTEGER
         tests:
           - not_null
-          - relationships:
-              to: source('PUBLIC', 'retail_data_mart')
-              field: stockid
-      - name: total_orders_num
-        description: "Count of transactions per customerid and stockid combination. Derived from DataStage RecCount() function"
+      - name: TOTAL_ORDERS_NUM
+        description: "Count of transactions per CUSTOMERID and STOCKID combination. Derived from DataStage RecCount() function"
         data_type: INTEGER
         tests:
           - not_null
@@ -134,5 +128,5 @@ models:
           operator: "export"
           file: "C:\\case_study\\Output_Data\\Count_Customers_Transactions.txt"
       conversion_date: "2024"
-      conversion_version: "2"
-      conversion_notes: "Version 2: Fixed case sensitivity issues. Changed all column and table names to lowercase for Snowflake compatibility. Aggregation logic preserved with GROUP BY and COUNT(*) matching DataStage group operator with sort method."
+      conversion_version: "3"
+      conversion_notes: "Version 3: Removed source() macro and using direct table reference AVA_DB.PUBLIC.RETAIL_DATA_MART. Changed all column names to uppercase to match Snowflake default behavior. Aggregation logic preserved with GROUP BY and COUNT(*) matching DataStage group operator with sort method."
