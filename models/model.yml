@@ -20,13 +20,19 @@ sources:
             tests:
               - not_null
           - name: spending_score
-            description: "Customer spending score"
+            description: "Customer spending score (0-100)"
+            tests:
+              - not_null
           - name: annual_incomek
             description: "Annual income in thousands"
+            tests:
+              - not_null
           - name: gender
             description: "Customer gender"
           - name: age
             description: "Customer age"
+            tests:
+              - not_null
           - name: customertype
             description: "Type of customer (citizen/foriegn)"
             tests:
@@ -42,8 +48,10 @@ sources:
               - unique
           - name: name
             description: "Retail store name"
+            tests:
+              - not_null
           - name: rating
-            description: "Store rating"
+            description: "Store rating (0-5)"
           - name: location
             description: "Store location"
           - name: noofemployees
@@ -67,10 +75,14 @@ sources:
             description: "Transaction description"
           - name: quantity
             description: "Quantity purchased"
+            tests:
+              - not_null
           - name: invoice_date
             description: "Invoice date (string format in source)"
           - name: price
             description: "Transaction price"
+            tests:
+              - not_null
           - name: customer_id
             description: "Foreign key to customer dimension"
             tests:
@@ -98,6 +110,8 @@ sources:
               - unique
           - name: productname
             description: "Product name"
+            tests:
+              - not_null
           - name: category
             description: "Product category"
           - name: subcategory
@@ -111,10 +125,11 @@ sources:
 models:
   - name: DataStage_To_DBT_Conversion_1
     description: |
-      Retail Data Mart - Complete ETL conversion from DataStage to DBT
+      Retail Data Mart - Initial ETL conversion from DataStage to DBT
       
       **Source Job:** RETAIL_DATA_MART_Job.dsx
       **Target Table:** RETAIL_DATA_MART
+      **Version:** 1 (Initial conversion with basic audit framework)
       
       **Transformation Flow:**
       1. Extract data from 4 source tables (Customer, Retail, Transactions, Product)
@@ -144,46 +159,156 @@ models:
         description: "Product identifier from product dimension"
         tests:
           - not_null
-      
       - name: productname
         description: "Product name"
         tests:
           - not_null
-      
       - name: category
         description: "Product category"
-      
       - name: subcategory
         description: "Product subcategory"
-      
       - name: sales
         description: "Product sales amount"
-      
       - name: quantity
         description: "Product quantity from product dimension"
-      
       - name: customer_id
         description: "Customer identifier"
         tests:
           - not_null
-      
       - name: customername
         description: "Customer name (transformed to uppercase)"
         tests:
           - not_null
-      
       - name: spending_score
         description: "Customer spending score"
-      
       - name: annual_incomek
         description: "Annual income in thousands"
-      
       - name: gender
         description: "Customer gender"
-      
       - name: age
         description: "Customer age"
+      - name: customertype
+        description: "Type of customer (filtered for citizen/foriegn)"
+        tests:
+          - not_null
+      - name: stockid
+        description: "Retail store identifier"
+        tests:
+          - not_null
+      - name: name
+        description: "Retail store name"
+      - name: rating
+        description: "Store rating"
+      - name: location
+        description: "Store location"
+      - name: noofemployees
+        description: "Number of employees at store"
+      - name: invoiceid
+        description: "Invoice identifier"
+        tests:
+          - not_null
+      - name: description
+        description: "Transaction description"
+      - name: invoice_date
+        description: "Invoice date (converted to integer)"
+      - name: price
+        description: "Transaction price"
+      - name: country
+        description: "Country of transaction"
+
+  - name: DataStage_To_DBT_Conversion_2
+    description: |
+      Retail Data Mart - Enhanced ETL conversion with Complete Audit Framework
       
+      **Source Job:** RETAIL_DATA_MART_Job.dsx
+      **Target Table:** RETAIL_DATA_MART
+      **Version:** 2 (Enhanced with comprehensive audit, reject handling, and error management)
+      
+      **Enhancements from Version 1:**
+      - ✅ Complete audit framework with BeforeJob and AfterJob hooks
+      - ✅ Comprehensive reject handling for data quality failures
+      - ✅ All job parameters implemented as DBT variables
+      - ✅ Enhanced error handling with detailed validation logic
+      - ✅ SCD dimension audit table for tracking customer changes
+      - ✅ Documented partitioning/clustering strategy
+      - ✅ Connection details and environment configurations
+      
+      **Transformation Flow:**
+      1. Extract and validate data from 4 source tables with quality checks
+      2. Capture rejected records in job_rejects table
+      3. Join valid transactions with customer data on customer_id
+      4. Join with retail store data on stockid
+      5. Join with product data on productid
+      6. Filter for specific customer types (citizen/foriegn)
+      7. Transform customer names to uppercase
+      8. Add audit columns (batch_id, load_timestamp)
+      9. Load into target data mart table
+      
+      **Audit Framework:**
+      - Pre-hook: Insert job start record into job_audit_log
+      - Post-hook: Update job completion with metrics and row counts
+      - SCD tracking: Customer dimension change history
+      
+      **Reject Handling:**
+      - Validation rules for all source tables
+      - Reject records stored in job_rejects table
+      - Error descriptions and raw data captured
+      
+      **Job Parameters (DBT Variables):**
+      - batch_id: Unique job run identifier
+      - run_date: Execution date for incremental processing
+      - commit_batch: Batch size for commits
+      - log_path: Log file directory path
+      - source_connection: Source database connection
+      - target_connection: Target database connection
+      - audit_schema: Schema for audit tables
+      
+      **Partitioning Strategy:**
+      - Cluster by: invoice_date, customer_id
+      - Optimized for temporal and customer-centric queries
+    
+    config:
+      materialized: table
+      tags: ['datastage_conversion', 'retail_data_mart', 'production']
+      cluster_by: ['invoice_date', 'customer_id']
+    
+    columns:
+      - name: productid
+        description: "Product identifier from product dimension"
+        tests:
+          - not_null
+      - name: productname
+        description: "Product name"
+        tests:
+          - not_null
+      - name: category
+        description: "Product category"
+      - name: subcategory
+        description: "Product subcategory"
+      - name: sales
+        description: "Product sales amount"
+        tests:
+          - not_null
+      - name: quantity
+        description: "Product quantity from product dimension"
+        tests:
+          - not_null
+      - name: customer_id
+        description: "Customer identifier"
+        tests:
+          - not_null
+      - name: customername
+        description: "Customer name (transformed to uppercase)"
+        tests:
+          - not_null
+      - name: spending_score
+        description: "Customer spending score (0-100)"
+      - name: annual_incomek
+        description: "Annual income in thousands"
+      - name: gender
+        description: "Customer gender"
+      - name: age
+        description: "Customer age"
       - name: customertype
         description: "Type of customer (filtered for citizen/foriegn)"
         tests:
@@ -191,45 +316,51 @@ models:
           - accepted_values:
               values: ['citizen', 'foriegn', 'Citizen', 'Foriegn', 'CITIZEN', 'FORIEGN']
               quote: true
-      
       - name: stockid
         description: "Retail store identifier"
         tests:
           - not_null
-      
       - name: name
         description: "Retail store name"
-      
       - name: rating
-        description: "Store rating"
-      
+        description: "Store rating (0-5)"
       - name: location
         description: "Store location"
-      
       - name: noofemployees
         description: "Number of employees at store"
-      
       - name: invoiceid
         description: "Invoice identifier"
         tests:
           - not_null
-      
       - name: description
         description: "Transaction description"
-      
       - name: invoice_date
         description: "Invoice date (converted to integer)"
-      
       - name: price
         description: "Transaction price"
-      
+        tests:
+          - not_null
       - name: country
         description: "Country of transaction"
+      - name: batch_id
+        description: "Unique batch identifier for audit tracking"
+        tests:
+          - not_null
+      - name: load_timestamp
+        description: "Timestamp when record was loaded"
+        tests:
+          - not_null
 
-# Audit and Control Tables (to be created separately)
-# These support the audit framework referenced in the model
-# 
-# CREATE TABLE job_audit_log (
+# =============================================================================
+# AUDIT AND CONTROL TABLES
+# =============================================================================
+# These tables support the audit framework and must be created before running
+# the DBT models. Execute the DDL statements below in your Snowflake environment.
+#
+# 1. JOB AUDIT LOG TABLE
+# Tracks job execution metrics and status
+#
+# CREATE TABLE IF NOT EXISTS job_audit_log (
 #     batch_id VARCHAR(50) PRIMARY KEY,
 #     job_name VARCHAR(255) NOT NULL,
 #     start_time TIMESTAMP NOT NULL,
@@ -238,10 +369,19 @@ models:
 #     source_count INTEGER,
 #     target_inserts INTEGER,
 #     target_updates INTEGER,
+#     reject_count INTEGER,
+#     execution_duration_seconds INTEGER,
+#     run_date DATE,
+#     source_connection VARCHAR(255),
+#     target_connection VARCHAR(255),
+#     log_path VARCHAR(500),
 #     error_message VARCHAR(4000)
 # );
 #
-# CREATE TABLE job_rejects (
+# 2. JOB REJECTS TABLE
+# Stores rejected records with validation errors
+#
+# CREATE TABLE IF NOT EXISTS job_rejects (
 #     batch_id VARCHAR(50),
 #     job_name VARCHAR(255),
 #     reject_time TIMESTAMP,
@@ -250,3 +390,23 @@ models:
 #     error_description VARCHAR(4000),
 #     raw_data VARIANT
 # );
+#
+# 3. CUSTOMER DIMENSION AUDIT TABLE (SCD)
+# Tracks changes in customer dimension over time
+#
+# CREATE TABLE IF NOT EXISTS customer_dim_audit (
+#     batch_id VARCHAR(50),
+#     customer_id NUMBER(10,0),
+#     customername VARCHAR(255),
+#     spending_score NUMBER(10,0),
+#     annual_incomek NUMBER(10,0),
+#     gender VARCHAR(255),
+#     age NUMBER(10,0),
+#     customertype VARCHAR(255),
+#     change_type VARCHAR(20),
+#     change_timestamp TIMESTAMP,
+#     previous_spending_score NUMBER(10,0),
+#     previous_annual_incomek NUMBER(10,0),
+#     PRIMARY KEY (batch_id, customer_id)
+# );
+# =============================================================================
