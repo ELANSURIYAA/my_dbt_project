@@ -1,9 +1,6 @@
-# DBT Project Configuration
-# Project: Retail Data Mart - DataStage to DBT Conversion
-# Database: Snowflake
-# Warehouse: AVA_WAREHOUSE
-# Database: AVA_DB
-# Schema: PUBLIC
+# DBT Project Configuration for DataStage to DBT Conversion
+# Project: Retail Data Mart ETL
+# Source: RETAIL_DATA_MART_Job.dsx
 
 name: 'retail_data_mart'
 version: '1.0.0'
@@ -26,69 +23,68 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "dbt_packages"
 
 # Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+
 models:
   retail_data_mart:
     # Config indicated by + and applies to all files under models/
     +materialized: table
-    +schema: PUBLIC
-    +database: AVA_DB
-    +tags: ["datastage_conversion"]
+    +schema: public
+    +tags:
+      - "datastage_conversion"
     
     # Specific configurations for DataStage conversion models
-    +pre-hook:
-      - "{{ log('Starting model execution: ' ~ this.name, info=True) }}"
+    DataStage_To_DBT_Conversion_1:
+      +materialized: table
+      +tags:
+        - "datastage_conversion"
+        - "retail_data_mart"
+        - "version_1"
     
-    +post-hook:
-      - "{{ log('Completed model execution: ' ~ this.name, info=True) }}"
+    DataStage_To_DBT_Conversion_2:
+      +materialized: table
+      +tags:
+        - "datastage_conversion"
+        - "retail_data_mart"
+        - "version_2"
+        - "production"
+      +cluster_by:
+        - "invoice_date"
+        - "customer_id"
 
-# Variables for the project
+# Variables for job execution
 vars:
   # Audit framework variables
   audit_schema: 'PUBLIC'
-  batch_id: "{{ 'BATCH_' ~ modules.datetime.datetime.now().strftime('%Y%m%d%H%M%S') }}"
   
-  # Source connection parameters (from DataStage)
-  source_database: 'AVA_DB'
-  source_schema: 'PUBLIC'
-  
-  # Target connection parameters
-  target_database: 'AVA_DB'
-  target_schema: 'PUBLIC'
-  
-  # Job parameters (from DataStage job parameters)
-  run_date: "{{ modules.datetime.datetime.now().strftime('%Y-%m-%d') }}"
-  commit_batch: 1000
-  log_path: '/tmp/dbt_logs'
+  # Job parameters (can be overridden at runtime)
+  # Example: dbt run --vars '{"batch_id": "BATCH_20230525", "run_date": "2023-05-25"}'
+  # batch_id: "BATCH_" || TO_CHAR(CURRENT_TIMESTAMP(), "YYYYMMDDHH24MISS")
+  # run_date: CURRENT_DATE()
+  commit_batch: 10000
+  log_path: "/logs/dbt/retail_data_mart"
+  source_connection: "AVA_DB.PUBLIC"
+  target_connection: "AVA_DB.PUBLIC"
 
 # Seeds configuration
 seeds:
   retail_data_mart:
-    +schema: PUBLIC
-    +database: AVA_DB
+    +schema: public
 
 # Snapshots configuration
 snapshots:
   retail_data_mart:
-    +target_schema: PUBLIC
-    +target_database: AVA_DB
+    +target_schema: snapshots
+    +strategy: timestamp
+    +updated_at: updated_at
 
 # Documentation
-docs:
-  retail_data_mart:
-    node_colors:
-      source: "#4CAF50"
-      model: "#2196F3"
-      test: "#FF9800"
-
-# On-run-start and on-run-end hooks
+# on-run-start and on-run-end hooks can be used for audit logging
 on-run-start:
-  - "{{ log('=== Starting Retail Data Mart ETL Process ===', info=True) }}"
-  - "{{ log('Batch ID: ' ~ var('batch_id'), info=True) }}"
-  - "{{ log('Run Date: ' ~ var('run_date'), info=True) }}"
+  - "{{ log('Starting DBT run for Retail Data Mart', info=True) }}"
 
 on-run-end:
-  - "{{ log('=== Completed Retail Data Mart ETL Process ===', info=True) }}"
-  - "{{ log('Total models run: ' ~ results | length, info=True) }}"
+  - "{{ log('Completed DBT run for Retail Data Mart', info=True) }}"
 
 # Dispatch configuration for cross-database compatibility
 dispatch:
