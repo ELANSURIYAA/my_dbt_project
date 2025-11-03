@@ -1,0 +1,31 @@
+# DBT Profile Configuration for Snowflake
+# Profile name must match the 'profile' setting in dbt_project.yml
+
+retail_data_mart:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      database: AVA_DB
+      warehouse: AVA_WAREHOUSE
+      schema: PUBLIC
+      threads: 4
+      client_session_keep_alive: False
+      query_tag: dbt_retail_data_mart
+      
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      database: AVA_DB
+      warehouse: AVA_WAREHOUSE
+      schema: PUBLIC
+      threads: 8
+      client_session_keep_alive: False
+      query_tag: dbt_retail_data_mart_prod
