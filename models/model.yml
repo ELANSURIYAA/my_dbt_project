@@ -233,39 +233,7 @@ models:
       - ✅ Documented partitioning/clustering strategy
       - ✅ Connection details and environment configurations
       
-      **Transformation Flow:**
-      1. Extract and validate data from 4 source tables with quality checks
-      2. Capture rejected records in job_rejects table
-      3. Join valid transactions with customer data on customer_id
-      4. Join with retail store data on stockid
-      5. Join with product data on productid
-      6. Filter for specific customer types (citizen/foriegn)
-      7. Transform customer names to uppercase
-      8. Add audit columns (batch_id, load_timestamp)
-      9. Load into target data mart table
-      
-      **Audit Framework:**
-      - Pre-hook: Insert job start record into job_audit_log
-      - Post-hook: Update job completion with metrics and row counts
-      - SCD tracking: Customer dimension change history
-      
-      **Reject Handling:**
-      - Validation rules for all source tables
-      - Reject records stored in job_rejects table
-      - Error descriptions and raw data captured
-      
-      **Job Parameters (DBT Variables):**
-      - batch_id: Unique job run identifier
-      - run_date: Execution date for incremental processing
-      - commit_batch: Batch size for commits
-      - log_path: Log file directory path
-      - source_connection: Source database connection
-      - target_connection: Target database connection
-      - audit_schema: Schema for audit tables
-      
-      **Partitioning Strategy:**
-      - Cluster by: invoice_date, customer_id
-      - Optimized for temporal and customer-centric queries
+      **Note:** Version 2 had an implementation issue with reject handling in CTEs
     
     config:
       materialized: table
@@ -336,6 +304,179 @@ models:
         description: "Transaction description"
       - name: invoice_date
         description: "Invoice date (converted to integer)"
+      - name: price
+        description: "Transaction price"
+        tests:
+          - not_null
+      - name: country
+        description: "Country of transaction"
+      - name: batch_id
+        description: "Unique batch identifier for audit tracking"
+        tests:
+          - not_null
+      - name: load_timestamp
+        description: "Timestamp when record was loaded"
+        tests:
+          - not_null
+
+  - name: DataStage_To_DBT_Conversion_3
+    description: |
+      Retail Data Mart - Fixed ETL conversion with Corrected Reject Handling
+      
+      **Source Job:** RETAIL_DATA_MART_Job.dsx
+      **Target Table:** RETAIL_DATA_MART
+      **Version:** 3 (Fixed version with proper reject handling implementation)
+      
+      **Changes from Version 2:**
+      - ✅ Fixed reject handling implementation (moved from CTE to post-hook)
+      - ✅ Corrected SQL syntax for reject record insertion
+      - ✅ Improved error handling flow
+      - ✅ Optimized validation logic for better performance
+      - ✅ Enhanced documentation and comments
+      
+      **Complete Feature Set:**
+      - ✅ Audit Framework: BeforeJob INSERT and AfterJob UPDATE with full metrics
+      - ✅ Reject Handling: Sequential file equivalent via job_rejects table
+      - ✅ Job Parameters: All DSX parameters as DBT variables
+      - ✅ Pre/Post Hooks: Complete audit and reject handling implementation
+      - ✅ SCD Audit Table: Customer dimension change tracking
+      - ✅ Error Handling: Comprehensive validation with NULL checks and range validation
+      - ✅ Partitioning Strategy: Cluster by invoice_date and customer_id
+      - ✅ Connection Details: Full Snowflake connection configuration
+      
+      **Transformation Flow:**
+      1. Extract and validate data from 4 source tables with quality checks
+      2. Filter out invalid records (captured in post-hooks)
+      3. Join valid transactions with customer data on customer_id
+      4. Join with retail store data on stockid
+      5. Join with product data on productid
+      6. Filter for specific customer types (citizen/foriegn)
+      7. Transform customer names to uppercase
+      8. Add audit columns (batch_id, load_timestamp)
+      9. Load into target data mart table
+      10. Post-hooks: Insert rejects, update audit log, track SCD changes
+      
+      **Audit Framework:**
+      - Pre-hook: Insert job start record into job_audit_log
+      - Post-hook: Insert rejected records into job_rejects (4 separate INSERT statements)
+      - Post-hook: Update job completion with metrics and row counts
+      - Post-hook: Track customer dimension changes in customer_dim_audit
+      
+      **Reject Handling:**
+      - Customer validation: NULL checks, age (0-120), spending_score (0-100), valid customertype
+      - Retail validation: NULL checks, rating (0-5), positive employee count
+      - Transaction validation: NULL checks, positive quantity, non-negative price, valid date format
+      - Product validation: NULL checks, non-negative sales and quantity
+      - All rejects stored in job_rejects table with error descriptions and raw data
+      
+      **Job Parameters (DBT Variables):**
+      - batch_id: Unique job run identifier (default: BATCH_YYYYMMDDHH24MISS)
+      - run_date: Execution date for incremental processing (default: CURRENT_DATE)
+      - commit_batch: Batch size for commits (default: 10000)
+      - log_path: Log file directory path (default: /logs/dbt/retail_data_mart)
+      - source_connection: Source database connection (default: AVA_DB.PUBLIC)
+      - target_connection: Target database connection (default: AVA_DB.PUBLIC)
+      - audit_schema: Schema for audit tables (default: PUBLIC)
+      
+      **Usage Example:**
+      ```
+      dbt run --models DataStage_To_DBT_Conversion_3 --vars '{"batch_id": "BATCH_20230525", "run_date": "2023-05-25"}'
+      ```
+      
+      **Partitioning Strategy:**
+      - Cluster by: invoice_date (temporal queries), customer_id (customer-centric queries)
+      - Optimized for common query patterns
+      - Recommended for large datasets (>1M rows)
+      
+      **Required Audit Tables:**
+      Before running this model, ensure the following tables exist:
+      1. job_audit_log - Tracks job execution metrics
+      2. job_rejects - Stores rejected records with validation errors
+      3. customer_dim_audit - Tracks customer dimension changes (SCD)
+      
+      See SQL comments for complete DDL statements.
+    
+    config:
+      materialized: table
+      tags: ['datastage_conversion', 'retail_data_mart', 'production', 'fixed']
+      cluster_by: ['invoice_date', 'customer_id']
+    
+    columns:
+      - name: productid
+        description: "Product identifier from product dimension"
+        tests:
+          - not_null
+      - name: productname
+        description: "Product name"
+        tests:
+          - not_null
+      - name: category
+        description: "Product category"
+      - name: subcategory
+        description: "Product subcategory"
+      - name: sales
+        description: "Product sales amount"
+        tests:
+          - not_null
+      - name: quantity
+        description: "Product quantity from product dimension"
+        tests:
+          - not_null
+      - name: customer_id
+        description: "Customer identifier"
+        tests:
+          - not_null
+      - name: customername
+        description: "Customer name (transformed to uppercase)"
+        tests:
+          - not_null
+      - name: spending_score
+        description: "Customer spending score (0-100)"
+        tests:
+          - not_null
+      - name: annual_incomek
+        description: "Annual income in thousands"
+        tests:
+          - not_null
+      - name: gender
+        description: "Customer gender"
+      - name: age
+        description: "Customer age"
+        tests:
+          - not_null
+      - name: customertype
+        description: "Type of customer (filtered for citizen/foriegn)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['citizen', 'foriegn', 'Citizen', 'Foriegn', 'CITIZEN', 'FORIEGN']
+              quote: true
+      - name: stockid
+        description: "Retail store identifier"
+        tests:
+          - not_null
+      - name: name
+        description: "Retail store name"
+        tests:
+          - not_null
+      - name: rating
+        description: "Store rating (0-5)"
+      - name: location
+        description: "Store location"
+      - name: noofemployees
+        description: "Number of employees at store"
+        tests:
+          - not_null
+      - name: invoiceid
+        description: "Invoice identifier"
+        tests:
+          - not_null
+      - name: description
+        description: "Transaction description"
+      - name: invoice_date
+        description: "Invoice date (converted to integer)"
+        tests:
+          - not_null
       - name: price
         description: "Transaction price"
         tests:
