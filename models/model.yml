@@ -1,0 +1,252 @@
+version: 2
+
+# Source definitions for Snowflake tables
+sources:
+  - name: PUBLIC
+    database: AVA_DB
+    schema: PUBLIC
+    description: "Source tables for Retail Data Mart ETL process"
+    tables:
+      - name: CUSTOMER_DIM
+        description: "Customer dimension table containing customer demographics and attributes"
+        columns:
+          - name: customer_id
+            description: "Unique identifier for customer"
+            tests:
+              - not_null
+              - unique
+          - name: customername
+            description: "Customer name"
+            tests:
+              - not_null
+          - name: spending_score
+            description: "Customer spending score"
+          - name: annual_incomek
+            description: "Annual income in thousands"
+          - name: gender
+            description: "Customer gender"
+          - name: age
+            description: "Customer age"
+          - name: customertype
+            description: "Type of customer (citizen/foriegn)"
+            tests:
+              - not_null
+
+      - name: RETAIL_DIM
+        description: "Retail store dimension table"
+        columns:
+          - name: stockid
+            description: "Unique identifier for retail stock/store"
+            tests:
+              - not_null
+              - unique
+          - name: name
+            description: "Retail store name"
+          - name: rating
+            description: "Store rating"
+          - name: location
+            description: "Store location"
+          - name: noofemployees
+            description: "Number of employees"
+
+      - name: TRANSACTIONS_FACT
+        description: "Transaction fact table containing sales transactions"
+        columns:
+          - name: stockid
+            description: "Foreign key to retail dimension"
+            tests:
+              - not_null
+              - relationships:
+                  to: source('PUBLIC', 'RETAIL_DIM')
+                  field: stockid
+          - name: invoiceid
+            description: "Invoice identifier"
+            tests:
+              - not_null
+          - name: description
+            description: "Transaction description"
+          - name: quantity
+            description: "Quantity purchased"
+          - name: invoice_date
+            description: "Invoice date (string format in source)"
+          - name: price
+            description: "Transaction price"
+          - name: customer_id
+            description: "Foreign key to customer dimension"
+            tests:
+              - not_null
+              - relationships:
+                  to: source('PUBLIC', 'CUSTOMER_DIM')
+                  field: customer_id
+          - name: country
+            description: "Country of transaction"
+          - name: productid
+            description: "Foreign key to product dimension"
+            tests:
+              - not_null
+              - relationships:
+                  to: source('PUBLIC', 'PRODUCT_DIM')
+                  field: productid
+
+      - name: PRODUCT_DIM
+        description: "Product dimension table"
+        columns:
+          - name: productid
+            description: "Unique identifier for product"
+            tests:
+              - not_null
+              - unique
+          - name: productname
+            description: "Product name"
+          - name: category
+            description: "Product category"
+          - name: subcategory
+            description: "Product subcategory"
+          - name: sales
+            description: "Product sales amount"
+          - name: quantity
+            description: "Product quantity"
+
+# DBT Models
+models:
+  - name: DataStage_To_DBT_Conversion_1
+    description: |
+      Retail Data Mart - Complete ETL conversion from DataStage to DBT
+      
+      **Source Job:** RETAIL_DATA_MART_Job.dsx
+      **Target Table:** RETAIL_DATA_MART
+      
+      **Transformation Flow:**
+      1. Extract data from 4 source tables (Customer, Retail, Transactions, Product)
+      2. Join transactions with customer data on customer_id
+      3. Join with retail store data on stockid
+      4. Join with product data on productid
+      5. Filter for specific customer types (citizen/foriegn)
+      6. Transform customer names to uppercase
+      7. Load into target data mart table
+      
+      **Key Transformations:**
+      - Invoice date conversion from string to integer
+      - Customer name uppercase transformation
+      - Customer type filtering
+      
+      **Data Quality:**
+      - NULL checks on all join keys
+      - Referential integrity validation
+      - Data type conversions with error handling
+    
+    config:
+      materialized: table
+      tags: ['datastage_conversion', 'retail_data_mart']
+    
+    columns:
+      - name: productid
+        description: "Product identifier from product dimension"
+        tests:
+          - not_null
+      
+      - name: productname
+        description: "Product name"
+        tests:
+          - not_null
+      
+      - name: category
+        description: "Product category"
+      
+      - name: subcategory
+        description: "Product subcategory"
+      
+      - name: sales
+        description: "Product sales amount"
+      
+      - name: quantity
+        description: "Product quantity from product dimension"
+      
+      - name: customer_id
+        description: "Customer identifier"
+        tests:
+          - not_null
+      
+      - name: customername
+        description: "Customer name (transformed to uppercase)"
+        tests:
+          - not_null
+      
+      - name: spending_score
+        description: "Customer spending score"
+      
+      - name: annual_incomek
+        description: "Annual income in thousands"
+      
+      - name: gender
+        description: "Customer gender"
+      
+      - name: age
+        description: "Customer age"
+      
+      - name: customertype
+        description: "Type of customer (filtered for citizen/foriegn)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['citizen', 'foriegn', 'Citizen', 'Foriegn', 'CITIZEN', 'FORIEGN']
+              quote: true
+      
+      - name: stockid
+        description: "Retail store identifier"
+        tests:
+          - not_null
+      
+      - name: name
+        description: "Retail store name"
+      
+      - name: rating
+        description: "Store rating"
+      
+      - name: location
+        description: "Store location"
+      
+      - name: noofemployees
+        description: "Number of employees at store"
+      
+      - name: invoiceid
+        description: "Invoice identifier"
+        tests:
+          - not_null
+      
+      - name: description
+        description: "Transaction description"
+      
+      - name: invoice_date
+        description: "Invoice date (converted to integer)"
+      
+      - name: price
+        description: "Transaction price"
+      
+      - name: country
+        description: "Country of transaction"
+
+# Audit and Control Tables (to be created separately)
+# These support the audit framework referenced in the model
+# 
+# CREATE TABLE job_audit_log (
+#     batch_id VARCHAR(50) PRIMARY KEY,
+#     job_name VARCHAR(255) NOT NULL,
+#     start_time TIMESTAMP NOT NULL,
+#     end_time TIMESTAMP,
+#     status VARCHAR(20) NOT NULL,
+#     source_count INTEGER,
+#     target_inserts INTEGER,
+#     target_updates INTEGER,
+#     error_message VARCHAR(4000)
+# );
+#
+# CREATE TABLE job_rejects (
+#     batch_id VARCHAR(50),
+#     job_name VARCHAR(255),
+#     reject_time TIMESTAMP,
+#     source_table VARCHAR(255),
+#     primary_key_value VARCHAR(255),
+#     error_description VARCHAR(4000),
+#     raw_data VARIANT
+# );
