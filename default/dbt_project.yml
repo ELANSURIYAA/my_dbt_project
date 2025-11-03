@@ -46,8 +46,20 @@ models:
       +tags:
         - "datastage_conversion"
         - "retail_data_mart"
-        - "version_2"
         - "production"
+        - "version_2"
+      +cluster_by:
+        - "invoice_date"
+        - "customer_id"
+    
+    DataStage_To_DBT_Conversion_3:
+      +materialized: table
+      +tags:
+        - "datastage_conversion"
+        - "retail_data_mart"
+        - "production"
+        - "fixed"
+        - "version_3"
       +cluster_by:
         - "invoice_date"
         - "customer_id"
@@ -58,13 +70,19 @@ vars:
   audit_schema: 'PUBLIC'
   
   # Job parameters (can be overridden at runtime)
-  # Example: dbt run --vars '{"batch_id": "BATCH_20230525", "run_date": "2023-05-25"}'
-  # batch_id: "BATCH_" || TO_CHAR(CURRENT_TIMESTAMP(), "YYYYMMDDHH24MISS")
-  # run_date: CURRENT_DATE()
+  # batch_id: 'BATCH_YYYYMMDDHH24MISS'  # Generated dynamically
+  # run_date: CURRENT_DATE()  # Generated dynamically
   commit_batch: 10000
-  log_path: "/logs/dbt/retail_data_mart"
-  source_connection: "AVA_DB.PUBLIC"
-  target_connection: "AVA_DB.PUBLIC"
+  log_path: '/logs/dbt/retail_data_mart'
+  
+  # Connection details
+  source_connection: 'AVA_DB.PUBLIC'
+  target_connection: 'AVA_DB.PUBLIC'
+  
+  # Environment-specific configurations
+  warehouse: 'AVA_WAREHOUSE'
+  database: 'AVA_DB'
+  schema: 'PUBLIC'
 
 # Seeds configuration
 seeds:
@@ -75,11 +93,12 @@ seeds:
 snapshots:
   retail_data_mart:
     +target_schema: snapshots
-    +strategy: timestamp
-    +updated_at: updated_at
 
 # Documentation
-# on-run-start and on-run-end hooks can be used for audit logging
+docs:
+  generate: true
+
+# On-run-start and on-run-end hooks (global level)
 on-run-start:
   - "{{ log('Starting DBT run for Retail Data Mart', info=True) }}"
 
@@ -91,8 +110,7 @@ dispatch:
   - macro_namespace: dbt
     search_order: ['retail_data_mart', 'dbt']
 
-# Quoting configuration for Snowflake
-quoting:
-  database: false
-  schema: false
-  identifier: false
+# Query comment configuration
+query-comment:
+  comment: 'DBT Model: {{ node.name }} | Run at: {{ run_started_at }}'
+  append: true
