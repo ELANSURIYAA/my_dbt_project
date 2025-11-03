@@ -1,9 +1,18 @@
-name: 'my_dbt_project'
+# DBT Project Configuration
+# Project: Retail Data Mart - DataStage to DBT Conversion
+# Database: Snowflake
+# Warehouse: AVA_WAREHOUSE
+# Database: AVA_DB
+# Schema: PUBLIC
+
+name: 'retail_data_mart'
 version: '1.0.0'
 config-version: 2
 
-profile: 'default'
+# This setting configures which "profile" dbt uses for this project.
+profile: 'retail_data_mart'
 
+# These configurations specify where dbt should look for different types of files.
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
@@ -11,26 +20,83 @@ seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
-target-path: "target"
-clean-targets:
+target-path: "target"  # directory which will store compiled SQL files
+clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
+# Configuring models
 models:
-  my_dbt_project:
+  retail_data_mart:
+    # Config indicated by + and applies to all files under models/
     +materialized: table
-    +schema: public
+    +schema: PUBLIC
     +database: AVA_DB
+    +tags: ["datastage_conversion"]
     
-    # Disable all older versions
-    DataStage_To_DBT_Conversion_1:
-      +enabled: false
-    DataStage_To_DBT_Conversion_2:
-      +enabled: false
-    DataStage_To_DBT_Conversion_3:
-      +enabled: false
-    DataStage_To_DBT_Conversion_4:
-      +enabled: false
-    DataStage_To_DBT_Conversion_5:
-      +enabled: true
-      +materialized: table
+    # Specific configurations for DataStage conversion models
+    +pre-hook:
+      - "{{ log('Starting model execution: ' ~ this.name, info=True) }}"
+    
+    +post-hook:
+      - "{{ log('Completed model execution: ' ~ this.name, info=True) }}"
+
+# Variables for the project
+vars:
+  # Audit framework variables
+  audit_schema: 'PUBLIC'
+  batch_id: "{{ 'BATCH_' ~ modules.datetime.datetime.now().strftime('%Y%m%d%H%M%S') }}"
+  
+  # Source connection parameters (from DataStage)
+  source_database: 'AVA_DB'
+  source_schema: 'PUBLIC'
+  
+  # Target connection parameters
+  target_database: 'AVA_DB'
+  target_schema: 'PUBLIC'
+  
+  # Job parameters (from DataStage job parameters)
+  run_date: "{{ modules.datetime.datetime.now().strftime('%Y-%m-%d') }}"
+  commit_batch: 1000
+  log_path: '/tmp/dbt_logs'
+
+# Seeds configuration
+seeds:
+  retail_data_mart:
+    +schema: PUBLIC
+    +database: AVA_DB
+
+# Snapshots configuration
+snapshots:
+  retail_data_mart:
+    +target_schema: PUBLIC
+    +target_database: AVA_DB
+
+# Documentation
+docs:
+  retail_data_mart:
+    node_colors:
+      source: "#4CAF50"
+      model: "#2196F3"
+      test: "#FF9800"
+
+# On-run-start and on-run-end hooks
+on-run-start:
+  - "{{ log('=== Starting Retail Data Mart ETL Process ===', info=True) }}"
+  - "{{ log('Batch ID: ' ~ var('batch_id'), info=True) }}"
+  - "{{ log('Run Date: ' ~ var('run_date'), info=True) }}"
+
+on-run-end:
+  - "{{ log('=== Completed Retail Data Mart ETL Process ===', info=True) }}"
+  - "{{ log('Total models run: ' ~ results | length, info=True) }}"
+
+# Dispatch configuration for cross-database compatibility
+dispatch:
+  - macro_namespace: dbt
+    search_order: ['retail_data_mart', 'dbt']
+
+# Quoting configuration for Snowflake
+quoting:
+  database: false
+  schema: false
+  identifier: false
